@@ -100,3 +100,34 @@
   }
 
   val initResult = init(list)
+
+
+  def foldRight[A,B](l: LocalList[A], z: B)(f: (A, B) => B): B = l match {
+      case LocalNil => z
+      case LocalCons(x, xs) => f(x, foldRight(xs, z)(f))
+  }
+
+
+  /*
+  * EXERCISE 7: Can product implemented using foldRight immediately halt the recursion and return 0.0
+  *  if it encounters a0.0? Why or why not?
+  * Consider how any short-circuiting might work if you call foldRight with a large list.
+  * This is a deeper question that we'll return to a few chapters from now.
+  * */
+
+  def product(ds: LocalList[Double]): Double = foldRight(ds, 1.0)(_ * _)
+
+
+  /*
+  * EXERCISE 8: See what happens when you pass Nil and Cons themselves to foldRight,
+  * like this: foldRight(List(1,2,3), Nil:List[Int])(Cons(_,_)).
+  * What do you think this says about the relationship between foldRight and the data constructors of List?
+  * */
+
+
+  /*
+  * EXERCISE 9: Compute the length of a list using foldRight.
+  * */
+  def length[A](l: LocalList[A]): Int = foldRight(l, 0)((x,y) => y+1)
+
+  val lengthResult = length(tail(list))
