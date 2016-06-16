@@ -27,7 +27,6 @@ object JavaCollection {
 
     println(assert(javaList eq javaListAgain))
 
-    println(assert(javaList eq scalaList))
   }
 
   def manOf[T: Manifest](t: T): Manifest[T] = manifest[T]
