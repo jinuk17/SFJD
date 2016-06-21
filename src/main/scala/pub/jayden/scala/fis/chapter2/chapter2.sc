@@ -15,6 +15,46 @@ def fib(n: Int): Int = {
     loop(n, 0, 1)
 }
 
+(0 to 10).foreach((x: Int) => println(fib(x)))
+
+
+private def fib1(n: Int): Int = {
+
+  import scala.collection.mutable._
+  val memo: HashMap[Int, Int] = new HashMap[Int, Int]()
+
+  def loop(n: Int): Int = {
+      memo.get(n).getOrElse(
+        if(n <= 0) 0
+        else if (n == 1)  1
+        else memo.+=((n, loop(n - 1) + loop(n - 2))).get(n).get
+      )
+  }
+  loop(n)
+}
+(0 to 10).foreach((x: Int) => println(fib1(x)))
+
+def isSorted1[A](as: Array[A], ordered: (A, A) => Boolean): Boolean = {
+  def loop(n: Int): Boolean = {
+    if (n >= as.length-1)
+      true
+    else if (ordered(as(n), as(n+1)))
+      loop(n+1)
+    else
+      false
+  }
+
+  loop(0)
+}
+
+def fib2(n: Int): List[Long] = {
+  def fib: Stream[Long] = 0 #:: 1 #:: fib.zip(fib.tail).map{case (a, b) => a + b}
+  fib.takeWhile(_ <= n).toList
+}
+
+fib2(10).foreach(println)
+
+
 (1 to 10).foreach(x =>println(fib(x)))
 
 
@@ -35,13 +75,14 @@ def isSorted[A](as: Array[A], ordered:(A, A) => Boolean): Boolean = {
   loop(0)
 }
 
+isSorted(Array(1,3,4,5), (x:Int, y:Int) => x < y)
 
 /*
  * EXERCISE 2.3
  * 또 다른 예로, 인수가 두 개인 함수 f를 인수 하나를 받고 그것으로 f를 부분 적용하는 함수로 변환하는 커링(currying)을 살펴보자.
  * 이번에도 컴파일된는 구현은 단 한 가지이다. 그러한 구현을 작성하라.
  * */
-def curry[A, B, C](f: (A, B) => C): A => (B => C) = {
+def curry[A, B, C](f: (A, B) => C): A => B => C = {
   // (a:A) => ((b: B) => f(a, b))
   a => b => f(a,b)
 
