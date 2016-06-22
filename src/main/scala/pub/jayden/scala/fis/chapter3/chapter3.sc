@@ -365,26 +365,86 @@ sealed trait Tree[+A]
 case class Leaf[A](value: A) extends Tree[A]
 case class Branch[A](left: Tree[A], right: Tree[A]) extends Tree[A]
 
+
+var tree = Branch(
+  Branch(
+    Branch(Leaf(1), Leaf(2)), Branch(Leaf(8), Leaf(30))),
+  Branch(
+    Branch(
+      Branch(
+        Branch(Leaf(35), Leaf(40)),
+        Branch(Leaf(90), Leaf(5))),
+      Branch(Leaf(34), Leaf(35))),
+    Leaf(1999))
+)
+
+
 /*
 * EXERCISE 25: Write a function size that counts the number of nodes in a tree.
 * */
+
+def size[A](t: Tree[A]): Int = t match {
+  case Leaf(_) => 1
+  case Branch(l, r) => 1 + size(l) + size(r)
+}
+
+size(tree)
 
 /*
 * EXERCISE 26: Write a function maximum that returns the maximum element in a Tree[Int].
 * (Note: in Scala, you can use x.max(y) or x max y to compute the maximum of two integers x and y.)
 * */
 
+def max(t: Tree[Int]):Int = t match {
+  case Leaf(v) => v
+  case Branch(l, r) => max(l) max max(r)
+}
+
+max(tree)
+
 /*
 * EXERCISE 27: Write a function depth that returns the maximum path length from the root of a tree to any leaf.
 * */
 
+def depth[A](t: Tree[A]): Int = t match {
+  case Leaf(_) => 1
+  case Branch(l, r) => (depth(l)+1) max (depth(r)+1)
+}
+
+depth(tree)
 /*
 * EXERCISE 28: Write a function map, analogous to the method of the same name on List, that modifies each element in a tree with a given function.
 * */
+
+def map[A, B](t: Tree[A])(f:A => B):Tree[B] = t match {
+  case Leaf(v) => Leaf(f(v))
+  case Branch(l, r) => Branch(map(l)(f), map(r)(f))
+}
+
+map(tree)(_*10)
 
 /*
 * EXERCISE 29: Generalize size, maximum, depth, and map, writing a new function fold that abstracts over their similarities.
 * Reimplement them in terms of this more general function.
 * Can you draw an analogy between this fold function and the left and right folds for List?
 * */
+
+def fold[A, B](t: Tree[A])(f:A => B)(g:(B, B) => B): B = t match {
+  case Leaf(value) => f(value)
+  case Branch(l, r) => g(fold(l)(f)(g), fold(r)(f)(g))
+}
+
+object Fold{
+  def size[A](t: Tree[A]): Int = fold(t)(_ => 1)(_+_+1)
+  def max(t: Tree[Int]):Int = fold(t)((v) => v)(_ max _)
+  def depth[A](t: Tree[A]): Int = fold(t)(_ => 1)(_+1 max _+1)
+  def map[A, B](t: Tree[A])(f:A => B):Tree[B] = fold(t)(v => Leaf(f(v)):Tree[B])(Branch(_,_))
+}
+
+Fold.size(tree)
+Fold.max(tree)
+Fold.depth(tree)
+Fold.map(tree)(_*10)
+
+
 
