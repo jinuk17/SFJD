@@ -37,12 +37,6 @@ val x = list match {
   case _ => 101
 }
 
-
-def append[A](a1:LocalList[A], a2:LocalList[A]): LocalList[A] =
-  a1 match {
-    case LocalNil => a2
-    case LocalCons(h, t) => LocalCons(h, append(t, a2))
-  }
 /*
   * EXERCISE 2: Implement the function tail for "removing" the first element of a List.
   * Notice the function takes constant time.
@@ -74,10 +68,10 @@ val dropResult = drop(list, 3)
 @tailrec
 def dropWhile[A](l: LocalList[A])(f: A => Boolean): LocalList[A] = l match {
   case LocalNil => l
-  case LocalCons(x, xs) => if(f(x)) dropWhile(xs)(f) else LocalCons(x, xs)
+  case LocalCons(x, xs) => if(f(x)) dropWhile(xs)(f) else l
 }
 
-val dropWhileResult = dropWhile(list)(_ > 0)
+val dropWhileResult = dropWhile(list)(_ < 3)
 
 //def dropWhile1[A](l: LocalList[A])(f: A => Boolean): LocalList[A] = ???
 //def dropWhile2[A](l: LocalList[A], f: A => Boolean): LocalList[A] = ???
@@ -92,7 +86,8 @@ def setHead[A](l: LocalList[A])(h: A): LocalList[A] = l match {
   case LocalCons(x, xs) => LocalCons(h, xs)
 }
 
-val setHeadResult = setHead(list)(10)
+//val setHeadResult = setHead(list) _
+//setHeadResult(10)
 
 /*
 * EXERCISE 6: Not everything works out so nicely.
@@ -100,6 +95,7 @@ val setHeadResult = setHead(list)(10)
 * So, given List(1,2,3,4), init will return List(1,2,3).
 * Why can't this function be implemented in constant time like tail?
 * */
+
 def init[A](l: LocalList[A]): LocalList[A] = l match {
   case LocalNil =>  throw new IllegalArgumentException("LocalNil is not supported.")
   case LocalCons(x, LocalNil) => LocalNil
@@ -170,7 +166,8 @@ object FoldLeft{
   * See if you can write it using a fold.
   * */
 
-def reverse[A](l: LocalList[A]): LocalList[A] = foldLeft(l, LocalNil:LocalList[A])((x, y) => LocalCons(y,x))
+def reverse[A](l: LocalList[A]): LocalList[A] =
+  foldLeft(l, LocalNil:LocalList[A])((x, y) => LocalCons(y,x))
 
 reverse(list)
 
@@ -188,7 +185,6 @@ def foldLeftByFoldRight[A,B](l: LocalList[A], z: B)(f: (B, A) => B): B = {
   val reverse: LocalList[A] = foldRight(l, LocalNil: LocalList[A])((a, b) => append(b, a))
 
   foldRight(reverse, z)((b, a) => f(a, b))
-
 }
 
 foldLeftByFoldRight(list, 0)(_+_)
@@ -200,15 +196,14 @@ def foldRightByFoldLeft[A,B](l: LocalList[A], z: B)(f: (A, B) => B): B = foldLef
   * EXERCISE 14: Implement append in terms of either foldLeft or foldRight.
   * */
 //with foldLeft
-def append[A](xs: LocalList[A], x: A): LocalList[A] = {
-  reverse(LocalCons(x, xs))
-}
+def append[A](as: LocalList[A], xs: LocalList[A]): LocalList[A] =
+    foldRight(as, xs)(LocalCons(_, _))
 
-  /*
-  * EXERCISE 15 (hard): Write a function that concatenates a list of lists into a single list.
-  * Its runtime should be linear in the total length of all lists.
-  * Try to use functions we have already defined.
-  * */
+/*
+* EXERCISE 15 (hard): Write a function that concatenates a list of lists into a single list.
+* Its runtime should be linear in the total length of all lists.
+* Try to use functions we have already defined.
+* */
 
 def flatMapForLocalList[A](l: LocalList[LocalList[A]]):LocalList[A] = {
   foldRight(l, LocalNil:LocalList[A])(
@@ -445,6 +440,5 @@ Fold.size(tree)
 Fold.max(tree)
 Fold.depth(tree)
 Fold.map(tree)(_*10)
-
 
 

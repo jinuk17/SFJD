@@ -33,6 +33,30 @@ def o1[T,V,U](f:T=>V, g:V=>U) = (x:T) => g(f(x))
 def o[T,V,U](f:T=>V) = (g:V=>U) => (x:T) => g(f(x))
 
 val x1 = Cons(1,Cons(2,Cons(8,MyNil)))
-
 val x7 = o(mkMyListFun(doubleMyList))(mkMyListFun(sqrtMyList))(x1)
+
+
+
+val arr = (0 to 9) .toArray
+val subarr = arr.view.slice(3, 6)
+
+def negate(xs : collection.mutable.Seq[Int]) = for (i <- 0 until xs .length) xs(i) = -xs(i)
+
+
+
+def pack[T](xs: List[T]): List[List[T]] = xs match {
+  case Nil => Nil
+  case x :: xs1 =>
+    val (left, right) = xs.span( _ == x)
+    left :: pack(right)
+}
+
+pack(List("a", "a", "a", "a", "b", "c", "c", "a"))
+
+
+def encode[T](xs: List[T]): List[(T, Int)] = pack(xs) map (ys => (ys.head, ys.length))
+
+encode(List("a", "a", "a", "a", "b", "c", "c", "a"))
+
+
 
