@@ -5,8 +5,6 @@ package pub.jayden.scala.fis
   */
 object Test extends App{
 
-  val setHeadResult = setHead(list)
-
 }
 
 
