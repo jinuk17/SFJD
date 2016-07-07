@@ -41,6 +41,10 @@ object OptionMain {
 
   }
 
+  object Option{
+    def apply[A](get: A): Option[A] = if(get == null) None else Some(get)
+  }
+
   case class Some[+A](get: A) extends Option[A]
   case object None extends Option[Nothing]
 
@@ -131,20 +135,18 @@ object OptionMain {
    * Here is its signature:
   * */
 
+
   def sequence[A](a: List[Option[A]]): Option[List[A]] = {
-    a.foldRight(Some(List[A]()):Option[List[A]])((b, a) => a.flatMap(x => b map (y => y :: x)))
+    a.foldRight(Option(List[A]()))((b, a) => a.flatMap(x => b map (y => y :: x)))
+//    a.foldRight(Some(List[A]()):Option[List[A]])((b, a) => a.flatMap(x => b map (y => y :: x)))
   }
 
   def sequence_1[A](a: List[Option[A]]): Option[List[A]] = {
-    a.foldRight(Some(List[A]()):Option[List[A]])((b, a) => map2(a, b)((x, y) => y :: x))
+    a.foldRight(Option(List[A]()))((b, a) => map2(a, b)((x, y) => y :: x))
   }
 
   def sequence_2[A](a: List[Option[A]]): Option[List[A]] = {
-    a.foldLeft(
-      Some(List[A]()):Option[List[A]]
-    )(
-      (a, b) => map2(a, b)((x, y) => y :: x)
-    ) map (l => l.reverse)
+    a.foldLeft(Option(List[A]()))((a, b) => map2(a, b)((x, y) => y :: x)) map (l => l.reverse)
   }
 
   val list = List(
@@ -182,7 +184,10 @@ object OptionMain {
   sequenceUsingTraverse(list)
   sequenceUsingTraverse(listHasNone)
 
-  def traverseUsingSequence[A, B](a: List[A])(f: A => Option[B]): Option[List[B]] = {
+  def sequenceUsingTraverse[A](a: List[Option[A]]): Option[List[A]] = {
+    traverse(a)(x => x)
+
+    def traverseUsingSequence[A, B](a: List[A])(f: A => Option[B]): Option[List[B]] = {
     sequence(a map (x => f(x)))
   }
 

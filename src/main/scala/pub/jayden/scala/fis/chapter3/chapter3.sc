@@ -285,7 +285,7 @@ def flatMap[A,B](l: LocalList[A])(f: A => LocalList[B]): LocalList[B] = {
 * */
 
 def filterByFlatMap[A](l: LocalList[A])(f: A => Boolean):LocalList[A] = {
-  flatMap(l)(x => if(f(x)) LocalNil else LocalCons(x, LocalNil))
+  flatMap(l)(x => if(f(x)) LocalCons(x, LocalNil) else LocalNil)
 }
 
 filterByFlatMap(LocalList(1,2,3,4,5,6,7,8))(_%2==1)
@@ -305,6 +305,8 @@ def zipWithInt(l:LocalList[Int], r:LocalList[Int]): LocalList[Int] = {
 
   loop(l, r, LocalNil)
 }
+
+zipWithInt(LocalList(1,2,3), LocalList(2))
 /*
 * EXERCISE 23: Generalize the function you just wrote so that it's not specific to integers or addition.
 * */
@@ -330,6 +332,7 @@ def zipWith[A, B, C](l:LocalList[A], r:LocalList[B])(f: (A, B) => C): LocalList[
 
 def hasSubsequence[A](l: LocalList[A], sub: LocalList[A]): Boolean = {
 
+  @tailrec
   def isSame(l:LocalList[A], r:LocalList[A]): Boolean = (l, r) match {
     case (_, LocalNil) => true
     case (LocalNil, _) => false
