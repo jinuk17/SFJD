@@ -64,24 +64,20 @@ object StreamMain{
     * EXERCISE 7: Implement map, filter, append, and flatMap using foldRight.
     * */
     //EXERCISE 7 map
-    def map[B](f: A => B): Stream[B] = ???
+    def map[B](f: A => B): Stream[B] =
+      foldRight(Stream():Stream[B])((a, b) => Cons(() => f(a),() => b))
 
     //EXERCISE 7 append
-    def append[B >: A](f: => B): Stream[B] = ???
+    def append[B >: A](s: Stream[B]): Stream[B] =
+      foldRight(s)((a, b) => Cons(() => a, () => b))
 
     //EXERCISE 7 filter
-    def filter(f: A => Boolean): Stream[A] = ???
+    def filter(f: A => Boolean): Stream[A] =
+      foldRight(Stream():Stream[A])((a, b) => if(f(a)) Cons(() => a, () => b) else b)
 
     //EXERCISE 7 flatMap
-    def flatMap[B](f: A => Stream[B]): Stream[B] = ???
-
-    /*
-    * EXERCISE 12: We can write a more general stream building function.
-    * It takes an initial state, and a function for producing both the next state and the next value in the generated stream.
-    * It is usually called unfold:
-    * */
-
-    def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = ???
+    def flatMap[B](f: A => Stream[B]): Stream[B] =
+      foldRight(Stream():Stream[B])((a, b) => f(a) append b)
 
 
     /*
@@ -89,6 +85,19 @@ object StreamMain{
     * The zipAll function should continue the traversal as long as either stream has more elements —
     * it uses Option to indicate whether each stream has been exhausted.
     * */
+
+    def mapUsingUnfold[B](f: A => B): Stream[B] =
+      unfold(this)({
+          case Cons(h, t) => Some(f(h()), t())
+          case _ => None
+      })
+
+    def takeUsingUnfold(n: Int): Stream[A] = unfold(this, n)({
+        case (Cons(h, t), i) if(i > 0)  => Some(h(), (t(), i-1))
+        case _ => None
+    })
+    def takeWhileUsingUnfold(p: A => Boolean): Stream[A] = ???
+    def zipWith[B, C](s2:Stream[B])(f: (A, B) => C): Stream[C] = ???
     def zipAll[B](s2: Stream[B]): Stream[(Option[A], Option[B])] = ???
 
 
@@ -143,49 +152,107 @@ object StreamMain{
   }
 
   val stream = Stream(1, 2, 3, 4, 5, 6, 7)
-  stream.toList
-  stream.take(3).toList
-  stream.takeWhile(_ <= 5).toList
-  stream.takeWhileUsingFoldRight(_ <= 5).toList
+  val stream2 = Stream(100, 200, 300, 400)
 
 
-  stream.headOptionUsingFoldRight
-  stream.take(0).headOptionUsingFoldRight
+  val toListResult = stream.toList
+  val takeResult = stream.take(3).toList
+  val takeUsingUnfoldResult = stream.takeUsingUnfold(5).toList
+  val takeWhileResult = stream.takeWhile(_ <= 5).toList
+  val takeWhileUsingFoldRightResult = stream.takeWhileUsingFoldRight(_ <= 5).toList
+
+  val headOptionUsingFoldRightResult1 = stream.headOptionUsingFoldRight
+  val headOptionUsingFoldRightResult2 = stream.take(0).headOptionUsingFoldRight
+
+  val mapResult = stream.map(_.toString() + " jayden").toList
+  val mapUsingUnfoldResult = stream.mapUsingUnfold(_.toString() + " uk").toList
 
 
+  val appendResult = stream append stream2 toList
+
+  val filterResult = stream.filter(_ > 3).toList
+
+  val flatMapResult = stream.flatMap(x => Stream(x, x, x)).toList
 
 
-  var ones: Stream[Int] = Stream.cons(1, ones)
+  val ones: Stream[Int] = Stream.cons(1, ones)
 
 
   ones.take(5).toList
   ones.exists(_ % 2 != 0)
 
+  val constantStream  = constant(2)
+
+  constantStream.take(5).toList
+
+  val fromStream = from(1)
+
+  fromStream.take(10).toList
+
+  val fibsStream = fibs
+
+  fibsStream.take(10).toList
 
   /*
   * EXERCISE 8: Generalize ones slightly to the function constant which returns an infinite Stream of a given value.
   * */
 
-  def constant[A](a: A): Stream[A] = ???
+  def constant[A](a: A): Stream[A] = Stream.cons(a, constant(a))
 
 
   /*
   * EXERCISE 9: Write a function that generates an infinite stream of integers, starting from n, then n + 1, n + 2, etc.
   * */
 
-  def from(n: Int): Stream[Int] = ???
+  def from(n: Int): Stream[Int] = Stream.cons(n, from(n+1))
 
   /*
   * EXERCISE 10: Write a function fibs that generates the infinite stream of Fibonacci numbers: 0, 1, 1, 2, 3, 5, 8, and so on.
   * */
 
-  def fibs(n: Int): Stream[Int] = ???
+  def fibs: Stream[Int] = {
+    def loop(a: Int,b: Int): Stream[Int] = {
+      Stream.cons(a, loop(b, a+b))
+    }
+    loop(0, 1)
+  }
+
 
   /*
-  * EXERCISE 11: Write fibs, from, constant, and ones in terms of unfold.
+  * EXERCISE 11: We can write a more general stream building function.
+  * It takes an initial state, and a function for producing both the next state and the next value in the generated stream.
+  * It is usually called unfold:
   * */
 
+  def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] =
+    f(z) match {
+      case Some(x) => Stream.cons(x._1, unfold(x._2)(f))
+      case None => Empty
+    }
 
+  /*
+  * EXERCISE 12: Write fibs, from, constant, and ones in terms of unfold.
+  * */
+
+  def constantUsingUnfold[A](a: A): Stream[A] = unfold(a)((x:A) => Option((x, x)))
+  def fromUsingUnfold(n: Int): Stream[Int] = unfold(n)(x => Option(x, x+1))
+  def fibsUsingUnfold:Stream[Int] = {
+    def tupleNextSum(a: (Int, Int)):(Int, Int) = (a._2, a._1 + a._2)
+    unfold((0,1))(x => Option(x._1, tupleNextSum(x)))
+  }
+
+
+  val onesUsingUnfold = unfold(1)(x => Option((1, 1)))
+  onesUsingUnfold.take(5).toList
+
+  val constantUsingUnfoldStream  = constantUsingUnfold(2)
+  constantUsingUnfoldStream.take(5).toList
+
+  val fromUsingUnfoldStream = fromUsingUnfold(100)
+  fromUsingUnfoldStream.take(5).toList
+
+  val fibsUsingUnfoldStream = fibsUsingUnfold
+  fibsUsingUnfoldStream.take(10).toList
 
 
 }
