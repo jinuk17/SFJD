@@ -178,7 +178,7 @@ object OptionMain {
   }
 
   def sequenceUsingTraverse[A](a: List[Option[A]]): Option[List[A]] = {
-    traverse(a)(x => x)
+    traverse(a)(x=>x)
   }
 
   sequenceUsingTraverse(list)
@@ -190,6 +190,7 @@ object OptionMain {
     def traverseUsingSequence[A, B](a: List[A])(f: A => Option[B]): Option[List[B]] = {
     sequence(a map (x => f(x)))
   }
+
 
 
 }
