@@ -1,3 +1,4 @@
+
 import scala.annotation.tailrec
 
 object Chapter6{
@@ -94,7 +95,6 @@ object Chapter6{
     loop(count, rng, List())
   }
 
-
   type Rand[+A] = RNG => (A, RNG)
 
   val int: Rand[Int] = _.nextInt
@@ -119,6 +119,7 @@ object Chapter6{
 
   def doubleUsingMap:Rand[Double] =
     map(nonNegativeInt)(n => n.toDouble / (Int.MaxValue.toDouble + 1d))
+
 
 
   val (d100, rng100) = double(rng)
@@ -166,20 +167,56 @@ object Chapter6{
     rng => loop(fs, List(), rng)
   }
 
+  def sequence1[A](fs: List[Rand[A]]):Rand[List[A]] =
+    fs.foldRight((unit(List[A]())))((x, r) => map2(x, r)(_ :: _))
+
+
   def intsUsingSequence(count: Int): Rand[List[Int]] =
     sequence(List.fill(count)(int))
 
   intsUsingSequence(10)(rng)
 
+
+  def nonNegativeLessThan(n: Int): Rand[Int] = { rng =>
+    val (i, rng2) = nonNegativeInt(rng)
+    val mod = i % n
+    if(i + (n-1) - mod >= 0) (mod, rng2)
+    else nonNegativeLessThan(n)(rng2)
+  }
+
+
   /*
   * 연습문제 6.8
   * */
+
+  def flatMap[A, B](f: Rand[A])(g: A => Rand[B]): Rand[B] =
+    rng => {
+      val (n, rng2) = f(rng)
+      g(n)(rng2)
+    }
 
   /*
   * 연습문제 6.9
   * */
 
+  def mapUsingFlatMap[A, B](s: Rand[A])(f: A => B): Rand[B] =
+    flatMap(s)(a => rng => ((f(a), rng)))
+
+  def map2UsingFlatMap[A, B, C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] =
+    flatMap(ra)(a => map(rb)(b => f(a, b)))
+
+
+  def rollDie: Rand[Int] = map(nonNegativeLessThan(6))(_ + 1)
+
+  val zero = rollDie(SimpleRNG(5))._1
+
+
+//  def map[S, A, B](a: S => (A, S))(f: A => B): S => (B, S) = ???
+
+
   /*
-  * 연습문제 6.10
+  * 연습문제 6.11
   * */
+
+
 }
