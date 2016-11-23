@@ -12,15 +12,29 @@ package object chapter9 {
 
   trait Parsers[Parser[+_]]{ self =>
 
+    /*
+    * input을 받아서 파서를 실행해서 결과 리턴
+    *
+    * run(char(c))(c.toString) == Right(c)
+    * */
     def run[A](p: Parser[A])(input: String): Either[ParserError, A]
+    /*
+    * s1 또는 s2 파서
+    * */
     def or[A](s1: Parser[A], s2: => Parser[A]): Parser[A]
 
+    /*
+    * p 파서가 n번
+    * */
     def listOfN[A](n: Int, p: Parser[A]): Parser[List[A]]
 
     def slice[A](p: Parser[A]): Parser[String]
 
     def flatMap[A, B](p: Parser[A])(f: A => Parser[B]): Parser[B]
 
+    /*
+    * 하나의 문자를 인식하는 파서
+    * */
     def char(c: Char): Parser[Char] =
       string(c.toString) map (_.charAt(0))
 
@@ -64,7 +78,6 @@ package object chapter9 {
     def test9_6() = "[0-9]+".r.flatMap(a => listOfN(a.toInt, char('a')))
 
 
-
     def label[A](msg: String)(p: Parser[A]): Parser[A]
 
     case class Location(input: String, offset: Int = 0) {
@@ -91,10 +104,27 @@ package object chapter9 {
     def scope[A](msg: String)(p: Parser[A]): Parser[A]
 
 
+    def removeLeft[A](p: Parser[A], remove: Parser[Any]): Parser[A] =
+      remove.slice.map2(p)((_,b) => b)
+
+    def removeRight[A](p: Parser[A], remove: Parser[Any]): Parser[A] =
+      p.map2(remove.slice)((a,_) => a)
+
     def between[A](start: Parser[Any], stop: Parser[Any])(p: => Parser[A]) =
-      start.slice.map2(p)((a, b) => b).map2(stop.slice)((a, b) => a)
+      removeRight(removeLeft(p, start), stop)
 
+    /*
+    * aaa,bbb,ccc,ddd
+    * to
+    * List("aaa", "bbb", "ccc", "ddd")
+    * */
+    def split[A](p: Parser[A], p2: Parser[Any]): Parser[List[A]] =
+      map2(p, many(removeLeft(p, p2)))(_ :: _) or succeed(List())
 
+    /*
+    * 문자열을 인식하는 파서
+    * run(string(s))(s) == Right(s)
+    * */
     implicit def string(s: String): Parser[String]
     implicit def regex(r: Regex): Parser[String]
 
@@ -118,7 +148,7 @@ package object chapter9 {
 
     }
 
-    case class ParserError(stack: List[Location, String])
+    case class ParserError(stack: List[(Location, String)])
 
     object Laws{
       def equal[A](p1: Parser[A], p2: Parser[A])(in: Gen[String]): Prop =
@@ -161,6 +191,7 @@ package object chapter9 {
 
     def jsonParser[Parser[+_]](P: Parsers[Parser]): Parser[JSON] = {
       import P._
+
 
 
 //      def array = between("[", "]")()
