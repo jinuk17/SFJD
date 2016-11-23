@@ -130,6 +130,14 @@ case class Gen[+A](sample: State[RNG, A]) {
 
   def unsized: SGen[A] = SGen{ n => this }
 
+  def map[B](f: A => B): Gen[B] =
+    Gen(sample.map(f))
+
+  def map2[B,C](g: Gen[B])(f: (A,B) => C): Gen[C] =
+    Gen(sample.map2(g.sample)(f))
+
+  def **[B](g: Gen[B]): Gen[(A,B)] =
+    (this map2 g)((_,_))
 
 }
 
@@ -193,6 +201,15 @@ object Gen {
     n => Gen.listOfN(1, g)
   }
 
+  object ** {
+    def unapply[A,B](p: (A,B)) = Some(p)
+  }
+
+  def stringN(n: Int): Gen[String] =
+    listOfN(n, choose(0,127)).map(_.map(_.toChar).mkString)
+
+  val string: SGen[String] = SGen(stringN)
+
 }
 
 case class SGen[+A](forSize: Int => Gen[A]) {
@@ -206,5 +223,7 @@ case class SGen[+A](forSize: Int => Gen[A]) {
     n => forSize(n).flatMap(f(_).forSize(n))
   )
 
+  def **[B](s2: SGen[B]): SGen[(A,B)] =
+    SGen(n => apply(n) ** s2(n))
 
 }

@@ -1,6 +1,7 @@
 package pub.jayden.scala.fis
 
-import org.scalacheck.{Gen, Prop}
+import cats.std.double
+import pub.jayden.scala.fis.chapter8.{Gen, Prop, SGen}
 
 import scala.util.matching.Regex
 
@@ -9,7 +10,7 @@ package object chapter9 {
   trait Parser{}
   trait ParserError{}
 
-  trait Parsers[ParserError, Parser[+_]]{ self =>
+  trait Parsers[Parser[+_]]{ self =>
 
     def run[A](p: Parser[A])(input: String): Either[ParserError, A]
     def or[A](s1: Parser[A], s2: => Parser[A]): Parser[A]
@@ -62,8 +63,36 @@ package object chapter9 {
 
     def test9_6() = "[0-9]+".r.flatMap(a => listOfN(a.toInt, char('a')))
 
-    def jsonArray[A](p: Parser[A]): Parser[A] =
-      string("[").map2(p)( (a, b) => b).map2("]")( (a, b) => a)
+
+
+    def label[A](msg: String)(p: Parser[A]): Parser[A]
+
+    case class Location(input: String, offset: Int = 0) {
+      lazy val line = input.slice(0, offset+1).count(_ == '\n') + 1
+      lazy val col = input.slice(0, offset+1).lastIndexOf('\n') match {
+        case -1 => offset + 1
+        case lineStart => offset - lineStart
+      }
+    }
+
+    def errorLocation(e: ParserError): Location
+    def errorMessage(e: ParserError): String
+
+
+    def labelLaw[A](p: Parser[A], inputs: SGen[String]): Prop =
+      Prop.forAll(inputs ** Gen.string) {
+        case (input, msg) =>
+          run(label(msg)(p))(input) match {
+            case Left(e) => errorMessage(e) == msg
+            case _ => true
+          }
+      }
+
+    def scope[A](msg: String)(p: Parser[A]): Parser[A]
+
+
+    def between[A](start: Parser[Any], stop: Parser[Any])(p: => Parser[A]) =
+      start.slice.map2(p)((a, b) => b).map2(stop.slice)((a, b) => a)
 
 
     implicit def string(s: String): Parser[String]
@@ -86,7 +115,10 @@ package object chapter9 {
       def flatMap[B](f: A => Parser[B]): Parser[B] = self.flatMap(p)(f)
       def slice: Parser[String] = self.slice(p)
 
+
     }
+
+    case class ParserError(stack: List[Location, String])
 
     object Laws{
       def equal[A](p1: Parser[A], p2: Parser[A])(in: Gen[String]): Prop =
@@ -127,12 +159,14 @@ package object chapter9 {
     *
     * */
 
-//    def jsonParser[Err, Parser[+_]](p: Parsers[Err, Parser]): Parser[JSON] = {
-//      import p._
-//
-//      val spaces = char(' ').many.slice
-//
-//    }
+    def jsonParser[Parser[+_]](P: Parsers[Parser]): Parser[JSON] = {
+      import P._
+
+
+//      def array = between("[", "]")()
+
+      succeed(JNull)
+    }
   }
 
 
