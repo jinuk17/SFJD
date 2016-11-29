@@ -1,6 +1,7 @@
 package pub.jayden.scala.fis.chapter7
 
-import java.util.concurrent.{ExecutorService, TimeUnit}
+import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.{Callable, CountDownLatch, ExecutorService, TimeUnit}
 
 object NonBlocking {
 
@@ -45,6 +46,147 @@ object NonBlocking {
         cache = Some(ret)
         ret
     }
+  }
+
+  object Par{
+
+    //def map2[A, B](a: A, b: A)(f: (A, A) => B) = ???
+
+    //    def unit[A](a: A) : Par[A] = es => UnitFuture(a)
+
+    def unit[A](a: A) : Par[A] = es => UnitFuture(a)
+
+    private case class UnitFuture[A](get: A) extends Future[A] {
+
+      override def isDone: Boolean = true
+      override def get(timeout: Long, unit: TimeUnit): A = get
+      override def isCancelled: Boolean = false
+      override def cancel(eventIfRunning: Boolean): Boolean = false
+    }
+
+    //    def map2[A, B, C](a: Par[A], b: Par[B])(f: (A, B) => C): Par[C] =
+    //      es => {
+    //        val af = a(es)
+    //        val bf = b(es)
+    //        UnitFuture(f(af.get, bf.get))
+    //      }
+    def map2[A, B, C](a: Par[A], b: Par[B])(f: (A, B) => C): Par[C] =
+    es => new Future[C]{
+      def apply(k: (C) => Unit): Unit = {
+        var ar: Option[A] = None
+        var br: Option[B] = None
+
+        val combiner = Actor[Either[A, B]](es){
+          case Left(a) => br match {
+            case None => ar = Some(a)
+            case Some(b) => eval(es)(k(f(a, b)))
+          }
+
+          case Right(b) => ar match {
+            case None => br = Some(b)
+            case Some(a) => eval(es)(k(f(a, b)))
+          }
+        }
+
+        a(es)(a => combiner ! Left(a))
+        b(es)(b => combiner ! Right(b))
+      }
+    }
+
+    //    def fork[A](a: => Par[A]): Par[A] =
+    //      es => es.submit(new Callable[A] {
+    //        def call = a(es).get
+    //      })
+
+    def fork[A](a: => Par[A]): Par[A] =
+      es => new Future[A] {
+        def apply(k: (A) => Unit): Unit = eval(es)(a(es)(k))
+      }
+
+    def eval(es: ExecutorService)(r: => Unit):Unit =
+      es.submit(new Callable[Unit] { def call = r})
+
+    def delay[A](a: => Par[A]): Par[A] =
+      es => a(es)
+
+    def map[A, B](pa: Par[A])(f: A => B): Par[B] =
+      map2(pa, unit(()))((a, _) => f(a))
+
+
+    def lazyUnit[A](a: A): Par[A] = delay(unit(a))
+
+
+
+    //    def run[A](s: ExecutorService)(a: Par[A]): Future[A] = a(s)
+
+    def run[A](s: ExecutorService)(a: Par[A]): A = {
+      val ref = new AtomicReference[A]
+      val latch = new CountDownLatch(1)
+
+      a(s){ a => {
+        ref.set(a)
+        latch.countDown
+      }
+      }
+
+      latch.await
+      ref.get
+    }
+
+
+    def asyncF[A, B](f: A => B): A => Par[B] =
+      a => unit(f(a))
+
+    def sortPar1(parList: Par[List[Int]]): Par[List[Int]] =
+      map2(parList, unit(()))((a, _) => a.sorted)
+
+    def sortPar2(parList: Par[List[Int]]) = map(parList)(_.sorted)
+
+
+    def parMap[A, B](ps: List[A])(f: A=>B): Par[List[B]] = delay {
+      val fbs = ps.map(asyncF(f))
+      sequence(fbs)
+    }
+
+    def parFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = {
+      //완전 순차처리...      unit(as.filter(f(_)))
+      map(sequence(as.map(asyncF(a => if (f(a)) List(a) else List()))))(_.flatten)
+    }
+
+    def sequence[A](ps: List[Par[A]]): Par[List[A]] =
+      ps.foldRight(unit(List[A]()))((a, acc) => map2(a, acc)(_ ::_ ))
+
+
+    def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
+      es =>
+        if(run(es)(cond)) t(es) else f(es)
+
+
+    def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] =
+      es =>
+        choices(run(es)(n))(es)
+
+    def choiceMap[K,V](key: Par[K])(choices: Map[K,Par[V]]): Par[V] =
+      es =>
+        choices(run(es)(key))(es)
+
+    def chooser[A,B](pa: Par[A])(choices: A => Par[B]): Par[B] =
+      es =>
+        choices(run(es)(pa))(es)
+
+
+    def choiceUsingChooser[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
+      chooser(cond)(if(_) t else f)
+
+    def choiceNUsingChooser[A](n: Par[Int])(choices: List[Par[A]]): Par[A] =
+      chooser(n)(choices(_))
+
+    def choiceMapUsingChooser[K,V](key: Par[K])(choices: Map[K,Par[V]]): Par[V] =
+      chooser(key)(choices(_))
+
+
+    def join[A](pa: Par[Par[A]]): Par[A] = ???
+
   }
 
 }

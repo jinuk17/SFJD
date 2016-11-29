@@ -178,7 +178,11 @@ package object chapter10 {
   * Exercise 10.8
   * */
 
-  def par[A](m: Monoid[A]): Monoid[Par[A]] = ???
+  def par[A](m: Monoid[A]): Monoid[Par[A]] = new Monoid[Par[A]]{
+    override def op(a1: Par[A], a2: Par[A]): Par[A] = Par.map2(a1, a2)(m.op)
+    override def zero: Par[A] = Par.unit(m.zero)
+  }
+
   def parFoldMap[A, B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] = ???
 
   /*
