@@ -9,7 +9,6 @@ package object chapter10 {
     def op(a1: A, a2: A): A
     def zero: A
   }
-
   val stringMonoid = new Monoid[String] {
     def op(a1: String, a2: String) = a1 + a2
     def zero = ""
@@ -169,7 +168,7 @@ package object chapter10 {
     if(length == 0) m.zero
     else if(length == 1) f(v.head)
     else {
-      val c = (length / 2)
+      val c = length / 2
       val v1: B = foldMapV(v.slice(0, c), m)(f)
       val v2: B = foldMapV(v.slice(c, v.length), m)(f)
       m.op(v1, v2)
@@ -269,7 +268,7 @@ package object chapter10 {
   trait Foldable[F[_]]{
     def foldRight[A, B](as: F[A])(z: B)(f: (A, B) => B): B
     def foldLeft[A, B](as: F[A])(z: B)(f: (B, A) => B): B
-    def foldMap[A, B](as: F[A])(f: A => B)(mb: Monoid[B]): B
+    def foldMap[A, B](as: F[A])(f: A => B)(m: Monoid[B]): B
     def concatenate[A](as: F[A])(m: Monoid[A]): A =
       foldLeft(as)(m.zero)(m.op)
 
@@ -286,22 +285,25 @@ package object chapter10 {
   * */
 
   def foldableList = new Foldable[List] {
-    override def foldRight[A, B](as: List[A])(z: B)(f: (A, B) => B): B =
+    def foldRight[A, B](as: List[A])(z: B)(f: (A, B) => B): B =
       as match {
         case Nil => z
         case ::(x, xs) => foldRight(xs)(f(x, z))(f)
       }
-    override def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B): B =
+    def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B): B =
       as match {
         case Nil => z
         case ::(x, xs) => foldLeft(xs)(f(z, x))(f)
       }
 
-    override def foldMap[A, B](as: List[A])(f: (A) => B)(mb: Monoid[B]): B =
+    def foldMap[A, B](as: List[A])(f: (A) => B)(mb: Monoid[B]): B ={
       as match {
         case Nil => mb.zero
-        case ::(x, xs) => foldMap(xs)(a => mb.op(f(x), f(a)))(mb)
+        case ::(x, xs) => mb.op(f(x), foldMap(xs)(f)(mb))
       }
+
+    }
+
 
 //    override def foldMap[A, B](as: List[A])(f: (A) => B)(mb: Monoid[B]): B =
 //      as.foldLeft(mb.zero)( (a, b) => mb.op(a, f(b)))

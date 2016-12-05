@@ -22,7 +22,6 @@ val M: Monoid[Map[String, Map[String, Int]]] =
   mapMergeMonoid(mapMergeMonoid(intAddition))
 
 
-
 val orderedList = IndexedSeq(1, 2, 3, 4, 5, 6)
 isOrdered(orderedList)
 
@@ -33,3 +32,10 @@ isOrdered(notOrderedList)
 val testString = " ajjm s,skfs asdkasfdasj asdjasd sdjsafsasa,"
 
 countWord(testString)
+
+foldableList.foldLeft(evenLengthList)("AAA")((b, a) => b + a.toString)
+
+val map: String = foldableList.foldMap(evenLengthList)(_.toString + "AAA ")(stringMonoid)
+
+System.out.println(map)
+
