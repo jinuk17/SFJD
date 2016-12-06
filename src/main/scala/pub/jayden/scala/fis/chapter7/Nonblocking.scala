@@ -1,8 +1,5 @@
-package fpinscala.parallelism
-
+package pub.jayden.scala.fis.chapter7
 import java.util.concurrent.{Callable, CountDownLatch, ExecutorService}
-
-import pub.jayden.scala.fis.chapter7.Actor
 
 object Nonblocking {
 
