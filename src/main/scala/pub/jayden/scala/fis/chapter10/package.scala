@@ -1,7 +1,7 @@
 package pub.jayden.scala.fis
 
-import fpinscala.parallelism.Nonblocking.Par
 import org.scalacheck.{Gen, Prop}
+import pub.jayden.scala.fis.chapter7.Nonblocking.Par
 
 package object chapter10 {
 

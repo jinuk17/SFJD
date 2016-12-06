@@ -1,6 +1,7 @@
 package pub.jayden.scala.fis
 
 
+import pub.jayden.scala.fis.chapter6.State
 import pub.jayden.scala.fis.chapter7.Nonblocking.Par
 import pub.jayden.scala.fis.chapter8.Gen
 import pub.jayden.scala.fis.chapter9.Parsers
@@ -41,6 +42,9 @@ package object chapter11 {
 
     def map2[A,B,C](fa: F[A], fb: F[B])(f: (A,B) => C): F[C] =
       flatMap(fa)(a => map(fb)(b => f(a,b)))
+
+    def sequence[A](lma: List[F[A]]): F[List[A]] = ???
+    def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] = ???
   }
 
 
@@ -79,6 +83,27 @@ package object chapter11 {
       def unit[A](a: => A): List[A] = List(a)
       def flatMap[A, B](fa: List[A])(f: (A) => List[B]): List[B] = fa.flatMap(f)
     }
+
+
+    def stateMonad[S] = new Monad[({type f[x] = State[S, x]})#f]{
+      def unit[A](a: => A): State[S, A] = State(s => (a, s))
+      def flatMap[A, B](fa: State[S, A])(f: (A) => State[S, B]): State[S, B] =
+        fa flatMap f
+    }
+
+    class StateMonad[S]{
+
+      type AState[A] = State[S, A]
+
+      def stateMonad = new Monad[AState] {
+        def unit[A](a: => A): State[S, A] = State(s => (a, s))
+        def flatMap[A, B](fa: State[S, A])(f: (A) => State[S, B]): State[S, B] =
+          fa flatMap f
+      }
+
+    }
+
+
 
 
   }
