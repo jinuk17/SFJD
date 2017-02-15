@@ -1,7 +1,6 @@
 package pub.jayden.scala.fis
 
 
-import pub.jayden.scala.fis.chapter6.State
 import pub.jayden.scala.fis.chapter7.Nonblocking.Par
 import pub.jayden.scala.fis.chapter8.Gen
 import pub.jayden.scala.fis.chapter9.Parsers
@@ -35,7 +34,11 @@ package object chapter11 {
   trait Monad[F[_]] extends Functor[F] {
 
     def unit[A](a: => A): F[A]
-    def flatMap[A,B](fa: F[A])(f: A => F[B]): F[B]
+
+    def flatMap[A,B](fa: F[A])(f: A => F[B]): F[B] = {
+      def ff = (_:Int) => fa
+      compose(ff, f)(69)
+    }
 
     def map[A,B](fa: F[A])(f: A => B): F[B] =
       flatMap(fa)(a => unit(f(a)))
@@ -43,10 +46,52 @@ package object chapter11 {
     def map2[A,B,C](fa: F[A], fb: F[B])(f: (A,B) => C): F[C] =
       flatMap(fa)(a => map(fb)(b => f(a,b)))
 
+    def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] =
+      a => {
+        flatMap(f(a))(b => g(b))
+      }
+
     def sequence[A](lma: List[F[A]]): F[List[A]] = ???
     def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] = ???
   }
 
+
+
+
+    def sequence[A](lma: List[F[A]]): F[List[A]] =
+      lma.foldRight(unit(List[A]()))( (fa, fb) => map2(fa, fb)( (a, b) => a :: b))
+
+    def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] =
+      la.foldRight(unit(List[B]()))( (a, fb) => map2(f(a), fb)( (a, b) => a :: b))
+
+
+    def replicateM[A](n: Int, ma: F[A]): F[List[A]] = sequence(List.fill(n)(ma))
+
+    def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] =
+      ms.foldRight( unit(List[A]()) )( (a, fb) => map2( f(a), fb)( (aBool, b) => if(aBool) a :: b else b) )
+
+  }
+
+
+
+  case class Order ( item: Item, quantity: Int )
+  case class Item ( name: String, price: Double )
+
+  var genOrder: Gen[Order] = for {
+    name <- Gen.stringN(3)
+    price <- Gen.uniform.map(_ * 10)
+    quantity <- Gen.choose(1, 100)
+  } yield Order(Item(name, price), quantity)
+
+  val genItem: Gen[Item] = for {
+    name <- Gen.stringN(3)
+    price <- Gen.uniform.map(_ * 10)
+  } yield Item(name, price)
+
+  val genOrder1: Gen[Order] = for {
+    item <- genItem
+    quantity <- Gen.choose(1, 100)
+  } yield Order(item, quantity)
 
   object Monad {
     val genMonad = new Monad[Gen] {

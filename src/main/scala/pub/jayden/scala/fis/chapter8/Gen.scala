@@ -210,6 +210,8 @@ object Gen {
 
   val string: SGen[String] = SGen(stringN)
 
+  val uniform: Gen[Double] = Gen(State(RNG.double))
+
 }
 
 case class SGen[+A](forSize: Int => Gen[A]) {
@@ -225,5 +227,6 @@ case class SGen[+A](forSize: Int => Gen[A]) {
 
   def **[B](s2: SGen[B]): SGen[(A,B)] =
     SGen(n => apply(n) ** s2(n))
+
 
 }
